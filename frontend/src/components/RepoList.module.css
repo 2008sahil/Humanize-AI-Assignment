@@ -1,0 +1,33 @@
+.repoList {
+    padding: 20px;
+  }
+
+  .repoItem {
+    padding: 16px;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    cursor: pointer;
+  }
+
+  .repoItem:hover {
+    background-color: #f6f8fa;
+  }
+
+  .repoItem h3 {
+    margin: 0;
+    color: #0366d6;
+  }
+
+  .repoItem p {
+    margin: 8px 0;
+    color: #586069;
+  }
+
+  .repoStats {
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+    color: #586069;
+    font-size: 14px;
+  }
