@@ -6,11 +6,20 @@ export const fetchGitHubUser = async (username: string) => {
 };
 
 export const fetchGitHubFollowers = async (username: string) => {
-  const response = await axios.get(`https://api.github.com/users/${username}/followers`);
-  return response.data;
+  const url = `https://api.github.com/users/${username}/followers`;
+  const { data } = await axios.get(url);
+  return data;
 };
 
-export const fetchGitHubFollowing = async (username: string) => {
-  const response = await axios.get(`https://api.github.com/users/${username}/following`);
-  return response.data;
+export const checkUserFollows = async (username: string, targetUser: string) => {
+  const url = `https://api.github.com/users/${username}/following/${targetUser}`;
+  try {
+    const response = await axios.get(url);
+    return response.status === 204;
+  } catch (error: any) {
+    if (error.response && error.response.status === 404) {
+      return false;
+    }
+    throw error;
+  }
 };

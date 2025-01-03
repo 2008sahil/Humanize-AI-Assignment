@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
-import { User, IUser } from "../models/userModel";
-import { fetchGitHubUser, fetchGitHubFollowers, fetchGitHubFollowing } from "../services/githubService";
+import { User } from "../models/userModel";
+import { fetchGitHubUser, fetchGitHubFollowers, checkUserFollows } from "../services/githubService";
 
+// 1. Save GitHub user details to the database
 export const createUser = async (req: Request, res: Response) => {
   const { username } = req.body;
   try {
@@ -14,11 +15,15 @@ export const createUser = async (req: Request, res: Response) => {
         location: gitHubData.location,
         blog: gitHubData.blog,
         bio: gitHubData.bio,
+        avatar_url: gitHubData.avatar_url,
         followers: gitHubData.followers,
         following: gitHubData.following,
         public_repos: gitHubData.public_repos,
         public_gists: gitHubData.public_gists,
-        avatar_url: gitHubData.avatar_url,
+        created_at: gitHubData.created_at,
+        updated_at: gitHubData.updated_at,
+        hireable: gitHubData.hireable,
+        company: gitHubData.company,
       });
     }
     res.status(200).json(user);
@@ -27,4 +32,91 @@ export const createUser = async (req: Request, res: Response) => {
   }
 };
 
-// Add more controller methods here
+// 2. Find mutual friends and save them
+export const saveMutualFriends = async (req: Request, res: Response) => {
+  const { username } = req.body;
+  try {
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const followers = await fetchGitHubFollowers(username);
+
+    const mutualFriends: string[] = [];
+    for (const follower of followers) {
+      const isMutual = await checkUserFollows(username, follower.login);
+      if (isMutual) {
+        mutualFriends.push(follower.login);
+      }
+    }
+
+    user.mutualFriends = mutualFriends;
+    await user.save();
+
+    res.status(200).json({ mutualFriends });
+  } catch (error) {
+    res.status(500).json({ error: error });
+  }
+};
+
+// 3. Search saved data
+export const searchUsers = async (req: Request, res: Response) => {
+  const filters = req.query;
+  console.log(filters)
+  try {
+    const users = await User.find({ ...filters, deleted: false });
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ error: error });
+  }
+};
+
+// 4. Soft delete a user
+export const softDeleteUser = async (req: Request, res: Response) => {
+  const { name } = req.params;
+  try {
+    const user = await User.findOneAndUpdate(
+      { name },
+      { deleted: true, deletedAt: new Date() },
+      { new: true }
+    );
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    res.status(200).json({ message: "User soft-deleted", user });
+  } catch (error) {
+    res.status(500).json({ error: error });
+  }
+};
+
+// 5. Update user fields
+export const updateUser = async (req: Request, res: Response) => {
+  const { name } = req.params;
+  const updates = req.body;
+  console.log(name)
+  try {
+    const user = await User.findOneAndUpdate(
+      { name },
+      { $set: updates },
+      { new: true }
+    );
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ error: error });
+  }
+};
+
+// 6. Return sorted list of users
+export const listUsers = async (req: Request, res: Response) => {
+  const { sort_by } = req.query;
+  try {
+    const users = await User.find({ deleted: false }).sort({ [sort_by as string]: 1 });
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ error: error });
+  }
+};

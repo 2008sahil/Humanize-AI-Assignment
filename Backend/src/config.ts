@@ -1,1 +1,1 @@
-export const MONGO_URI = "mongodb://127.0.0.1:27017/github-assignment";
+export const MONGO_URI = "mongodb+srv://shootersahil20:sahil093@cluster0.dvmbuer.mongodb.net/";
